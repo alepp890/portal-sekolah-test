@@ -4,21 +4,29 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Portal Pengujian Log Masuk</title>
+
+  <!-- Tetapan PWA (Manifest & Ikon Telefon) -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1d4ed8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2991/2991148.png">
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4 font-sans">
 
   <div class="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
     <!-- Header -->
     <div class="bg-blue-700 p-6 text-center text-white">
       <div class="inline-flex p-3 bg-blue-800/60 rounded-full mb-3">
-        <i class="fa-solid fa-shield-halved text-3xl text-yellow-400"></i>
+        <i class="fa-solid fa-mobile-screen-button text-3xl text-yellow-400"></i>
       </div>
-      <h1 class="text-2xl font-bold">Portal Pengujian</h1>
-      <p class="text-xs text-blue-100 mt-1">Log Masuk Modular & Heterogen</p>
+      <h1 class="text-2xl font-bold">Portal Pengujian (PWA)</h1>
+      <p class="text-xs text-blue-100 mt-1">Sistem Log Masuk Modular & App Telefon</p>
     </div>
 
     <!-- Borang Input -->
@@ -33,7 +41,7 @@
         <input type="password" id="passInput" placeholder="Masukkan katalaluan" class="w-full text-xs border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
       </div>
 
-      <button onclick="prosesLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition text-sm flex items-center justify-center gap-2">
+      <button onclick="prosesLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition text-sm flex items-center justify-center gap-2 shadow-md">
         <i class="fa-solid fa-right-to-bracket"></i> Log Masuk Portal
       </button>
 
@@ -42,14 +50,23 @@
     </div>
 
     <div class="bg-slate-50 p-3 text-center border-t border-slate-200 text-[10px] text-gray-400">
-      GitHub Pages + Google Apps Script API Test
+      PWA Ready • GitHub Pages & Apps Script API
     </div>
   </div>
 
   <script>
-    // URL Web App Apps Script anda yang telah dimasukkan siap-siap!
     const API_URL = "https://script.google.com/macros/s/AKfycbwUoxY1zoaW9NnI3oZkjSUlJ38K01nRtROoNmDYWpA0WKwnAIRQO0rs1c-KhMXSB6Ch/exec";
 
+    // 1. Pendaftaran Service Worker (PWA)
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('Service Worker Berjaya Didaftarkan:', reg))
+          .catch(err => console.log('Service Worker Gagal:', err));
+      });
+    }
+
+    // 2. Fungsi Log Masuk
     async function prosesLogin() {
       const email = document.getElementById("emailInput").value.trim();
       const pass = document.getElementById("passInput").value.trim();
@@ -83,10 +100,8 @@
           msg.className = "text-xs text-center p-3 rounded-lg font-medium bg-green-50 text-green-600 border border-green-200";
           msg.innerText = "Pengesahan Berjaya! Mengalih ke dashboard...";
 
-          // Simpan data profil dalam memori browser
           sessionStorage.setItem("userProfile", JSON.stringify(res));
 
-          // Alih ke fail dashboard mengikut peranan
           setTimeout(() => {
             window.location.href = res.redirect;
           }, 1000);
