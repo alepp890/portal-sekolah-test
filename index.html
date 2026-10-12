@@ -16,6 +16,10 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Firebase Web SDK (Compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
 </head>
 <body class="bg-slate-100 min-h-screen flex items-center justify-center p-4 font-sans">
 
@@ -23,14 +27,19 @@
     <!-- Header -->
     <div class="bg-blue-700 p-6 text-center text-white">
       <div class="inline-flex p-3 bg-blue-800/60 rounded-full mb-3">
-        <i class="fa-solid fa-mobile-screen-button text-3xl text-yellow-400"></i>
+        <i class="fa-solid fa-bell text-3xl text-yellow-400"></i>
       </div>
-      <h1 class="text-2xl font-bold">Portal Pengujian (PWA)</h1>
-      <p class="text-xs text-blue-100 mt-1">Sistem Log Masuk Modular & App Telefon</p>
+      <h1 class="text-2xl font-bold">Portal Pengujian (FCM)</h1>
+      <p class="text-xs text-blue-100 mt-1">Sistem Log Masuk Modular & Push Notifications</p>
     </div>
 
     <!-- Borang Input -->
     <div class="p-6 space-y-4">
+      <!-- Butang Aktifkan Notifikasi -->
+      <button id="btnNotify" onclick="mintaKebenaranNotifikasi()" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2.5 rounded-xl transition text-xs flex items-center justify-center gap-2 shadow-sm">
+        <i class="fa-solid fa-bell-concierge"></i> Aktifkan Notifikasi Push
+      </button>
+
       <div class="space-y-1.5">
         <label class="block text-xs font-bold text-gray-700">Emel / ID DELIMa / Personal:</label>
         <input type="email" id="emailInput" placeholder="g-12345678@moe-dl.edu.my / gmail" class="w-full text-xs border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -45,28 +54,80 @@
         <i class="fa-solid fa-right-to-bracket"></i> Log Masuk Portal
       </button>
 
-      <!-- Mesej Status / Ralat -->
-      <div id="msg" class="text-xs text-center p-3 rounded-lg hidden font-medium"></div>
+      <!-- Mesej Status / Ralat / Token -->
+      <div id="msg" class="text-xs text-center p-3 rounded-lg hidden font-medium break-all"></div>
     </div>
 
     <div class="bg-slate-50 p-3 text-center border-t border-slate-200 text-[10px] text-gray-400">
-      PWA Ready • GitHub Pages & Apps Script API
+      PWA + FCM Ready • GitHub Pages & Apps Script API
     </div>
   </div>
 
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbwUoxY1zoaW9NnI3oZkjSUlJ38K01nRtROoNmDYWpA0WKwnAIRQO0rs1c-KhMXSB6Ch/exec";
 
-    // 1. Pendaftaran Service Worker (PWA)
-    if ('serviceWorker' in navigator) {
+    // Configuration Firebase Anda
+    const firebaseConfig = {
+      apiKey: "AIzaSyBZ_NGnC6PqvaiNpd-GI-jBd1_7OSvXCUE",
+      authDomain: "portal-sekolah-test.firebaseapp.com",
+      projectId: "portal-sekolah-test",
+      storageBucket: "portal-sekolah-test.firebasestorage.app",
+      messagingSenderId: "523708567020",
+      appId: "1:523708567020:web:44580ec4f12621e48944c9"
+    };
+
+    const VAPID_KEY = "BJDKZ620dZr5fzelXzUg_Cu2Y4uZUp2iOZrf3QR-uZjF1Fl1TfctqUF4XRHm758ApHpNT_FRDrT6qJR7gI9iIH8";
+
+    // Inisialisasi Firebase
+    firebase.initializeApp(firebaseConfig);
+    let messaging = null;
+
+    if ('serviceWorker' in navigator && firebase.messaging.isSupported()) {
+      messaging = firebase.messaging();
+
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
-          .then(reg => console.log('Service Worker Berjaya Didaftarkan:', reg))
+          .then(reg => console.log('Service Worker Berjaya:', reg))
           .catch(err => console.log('Service Worker Gagal:', err));
       });
     }
 
-    // 2. Fungsi Log Masuk
+    // Fungsi Minta Kebenaran Notifikasi & Ambil Token
+    async function mintaKebenaranNotifikasi() {
+      const msg = document.getElementById("msg");
+      if (!messaging) {
+        alert("Notifikasi tidak disokong oleh pelayar ini.");
+        return;
+      }
+
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          msg.className = "text-xs text-center p-3 rounded-lg font-medium bg-amber-50 text-amber-800 border border-amber-200 break-all";
+          msg.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengambil Token FCM...';
+          msg.classList.remove("hidden");
+
+          const token = await messaging.getToken({ vapidKey: VAPID_KEY });
+          if (token) {
+            console.log("FCM Token:", token);
+            msg.className = "text-xs text-left p-3 rounded-lg font-medium bg-green-50 text-green-700 border border-green-200 break-all";
+            msg.innerHTML = '<strong>Notifikasi Aktif! Token FCM Anda:</strong><br><span class="text-[10px] text-gray-600">' + token + '</span>';
+            // Simpan token untuk rujukan
+            sessionStorage.setItem("fcmToken", token);
+          } else {
+            msg.innerText = "Gagal mendapatkan token FCM.";
+          }
+        } else {
+          alert("Kebenaran notifikasi ditolak oleh pengguna.");
+        }
+      } catch (err) {
+        msg.className = "text-xs text-center p-3 rounded-lg font-medium bg-red-50 text-red-600 border border-red-200";
+        msg.innerText = "Ralat Notifikasi: " + err.message;
+        msg.classList.remove("hidden");
+      }
+    }
+
+    // Fungsi Log Masuk
     async function prosesLogin() {
       const email = document.getElementById("emailInput").value.trim();
       const pass = document.getElementById("passInput").value.trim();
